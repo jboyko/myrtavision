@@ -44,11 +44,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--scores", type=Path, default=PROJECT_ROOT / "scores.csv")
     parser.add_argument("--images", type=Path, default=PROJECT_ROOT / "data/images")
-    parser.add_argument("--out", type=Path, default=PROJECT_ROOT / "splits/leafmachine_v1.csv")
+    parser.add_argument("--out", type=Path, default=PROJECT_ROOT / "splits/phenology_v2.csv")
     parser.add_argument("--val", type=float, default=0.15)
     parser.add_argument("--test", type=float, default=0.15)
     parser.add_argument("--seed", type=int, default=26)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--require-images",
+        action="store_true",
+        help="drop rows whose image is not downloaded; by default the split depends only on the scores",
+    )
     args = parser.parse_args()
     if args.val + args.test >= 1:
         raise ValueError("validation and test fractions must sum to less than one")
@@ -64,13 +69,13 @@ def main():
                 continue
             key = image_key(row)
             image = args.images / f"{key}.jpg"
-            if not image.is_file():
+            if args.require_images and not image.is_file():
                 missing.append(key)
                 continue
             rows.append({
                 "image_id": key,
                 "gbif_id": row["gbifID"],
-                "path": str(image.relative_to(PROJECT_ROOT)),
+                "path": f"data/images/{key}.jpg",
                 **{organ: value for organ, value in zip(ORGANS, flags)},
             })
 

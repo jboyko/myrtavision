@@ -1,14 +1,16 @@
-torch
-torchvision
-numpy
-Pillow
-PyYAML
-requests
-opencv-python
-matplotlib
+# torch/torchvision are installed first by slurm/setup.sh from the CUDA 12.6 index
+# (CUDA 13 builds do not support the V100s on the gpu partition). Major versions
+# are pinned to those tested locally.
+numpy>=2,<3
+Pillow>=12,<13
+PyYAML>=6,<7
+requests>=2,<3
+opencv-python>=5,<6
+matplotlib>=3.9,<4
+ultralytics>=8.4.131,<8.5
 
 # Minimal runtime needed by LeafMachine2's bundled YOLOv5 detector.
-pandas>=2.2
-seaborn>=0.13
+pandas>=3,<4
+seaborn>=0.13,<0.14
 setuptools<81
-tqdm>=4.65
+tqdm>=4.65,<5

@@ -3,10 +3,14 @@
 __pycache__/
 *.pyc
 *.pt
+# LeafMachine head checkpoints are ~1 MB; YOLO weights stay in results/ but out of git
+!/results/train/lm2_*/*.pt
 
 # Rebuildable folders; symlinks into /scratch on Great Lakes, so no trailing slash
 /data
+/datasets
 /runs
+/weights
 /logs
 
 # Raw GBIF exports (scores.csv is derived from them)

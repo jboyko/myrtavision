@@ -11,7 +11,12 @@ from torch.utils.data import DataLoader
 
 from .data import PhenologyDataset
 from .metrics import compute_metrics, format_metrics, optimize_thresholds
-from .model import DEFAULT_DETECTOR_WEIGHTS, LeafMachineClassifier, load_classifier_checkpoint
+from .model import (
+    DEFAULT_DETECTOR_WEIGHTS,
+    LeafMachineClassifier,
+    load_classifier_checkpoint,
+    project_relative,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -47,7 +52,7 @@ def checkpoint_payload(model, args, epoch, best_macro_f1):
         "hidden_channels": args.hidden_channels,
         "dropout": args.dropout,
         "image_size": args.image_size,
-        "manifest": str(args.manifest.resolve()),
+        "manifest": project_relative(args.manifest),
     }
     backbone_from = model._trainable_from  # saved scope mirrors the explicit fine-tuning boundary
     state = {
@@ -68,7 +73,7 @@ def checkpoint_payload(model, args, epoch, best_macro_f1):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/leafmachine_v1.csv")
+    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v2.csv")
     parser.add_argument("--detector-weights", type=Path, default=DEFAULT_DETECTOR_WEIGHTS)
     parser.add_argument("--init-checkpoint", type=Path, help="initialize from a previously trained classifier head")
     parser.add_argument("--image-size", type=int, default=1280)
@@ -170,9 +175,11 @@ def main():
         history = csv.writer(history_file)
         history.writerow([
             "epoch", "train_loss", "bud_f1", "flower_f1", "fruit_f1",
-            "val_macro_f1", "val_exact", "learning_rate",
+            "val_macro_f1", "val_exact", "learning_rate", "peak_gpu_gb",
         ])
         for epoch in range(1, args.epochs + 1):
+            if device.type == "cuda":
+                torch.cuda.reset_peak_memory_stats(device)
             model.train()
             running_loss = 0.0
             for batch_index, batch in enumerate(train_loader, start=1):
@@ -204,6 +211,7 @@ def main():
                 metrics["macro_f1"],
                 metrics["exact_match"],
                 learning_rate,
+                torch.cuda.max_memory_allocated(device) / 1024**3 if device.type == "cuda" else "",
             ])
             history_file.flush()
             print(

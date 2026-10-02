@@ -18,6 +18,21 @@ DEFAULT_DETECTOR_WEIGHTS = PROJECT_ROOT / "third_party/LeafMachine2/checkpoints/
 ORGANS = ("bud", "flower", "fruit")
 
 
+def project_relative(path: str | Path) -> str:
+    """Store paths inside the repo relative to it, so checkpoints survive moving machines."""
+    path = Path(path).absolute()
+    try:
+        return str(path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def resolve_project_path(stored: str | Path) -> Path:
+    """Inverse of project_relative: relative paths are anchored at the repo root."""
+    path = Path(stored)
+    return path if path.is_absolute() else PROJECT_ROOT / path
+
+
 def _load_leafmachine_detector(weights: str | Path):
     """Load the GPL-3.0 LeafMachine2 YOLOv5 checkpoint without fusing layers."""
     weights = Path(weights).resolve()
@@ -81,7 +96,7 @@ class LeafMachineClassifier(nn.Module):
         if detect_layer.__class__.__name__ != "Detect":
             raise TypeError("LeafMachine checkpoint does not end in a YOLO Detect layer")
 
-        self.detector_weights = str(Path(detector_weights).resolve())
+        self.detector_weights = str(Path(detector_weights).absolute())
         with Path(self.detector_weights).open("rb") as handle:
             digest = hashlib.sha256()
             for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -179,7 +194,7 @@ class LeafMachineClassifier(nn.Module):
 
     def configuration(self) -> dict:
         return {
-            "detector_weights": self.detector_weights,
+            "detector_weights": project_relative(self.detector_weights),
             "detector_sha256": self.detector_sha256,
             "feature_indices": list(self.feature_indices),
             "feature_strides": list(self.feature_strides),
@@ -203,7 +218,13 @@ def load_classifier_checkpoint(
     """Rebuild the classifier from LeafMachine weights and load learned state."""
     payload = torch.load(checkpoint_path, map_location=map_location, weights_only=False)
     config = payload["config"]
-    weights = detector_weights or config.get("detector_weights") or DEFAULT_DETECTOR_WEIGHTS
+    weights = detector_weights
+    if weights is None:
+        stored = config.get("detector_weights")
+        weights = resolve_project_path(stored) if stored else DEFAULT_DETECTOR_WEIGHTS
+        if not Path(weights).is_file():
+            # e.g. an absolute path from another machine; the checksum below still guards identity
+            weights = DEFAULT_DETECTOR_WEIGHTS
     model = LeafMachineClassifier(
         detector_weights=weights,
         hidden_channels=int(config.get("hidden_channels", 128)),

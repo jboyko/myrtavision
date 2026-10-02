@@ -1,0 +1,8 @@
+name	method	model	imgsz	batch	epochs	seed	extra
+lm2_frozen_1280	lm2_head	-	1280	2	30	26	-
+combo_y26s_640	yolo_combo	yolo26s-cls.pt	640	32	100	0	-
+combo_y26m_640	yolo_combo	yolo26m-cls.pt	640	32	100	0	-
+combo_y26m_896	yolo_combo	yolo26m-cls.pt	896	16	100	0	-
+combo_y11m_640	yolo_combo	yolo11m-cls.pt	640	32	100	0	-
+binary_y26s_640	yolo_binary	yolo26s-cls.pt	640	32	100	0	-
+binary_y26m_640	yolo_binary	yolo26m-cls.pt	640	32	100	0	-

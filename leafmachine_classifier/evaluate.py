@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from .data import PhenologyDataset
 from .metrics import ORGANS, compute_metrics, format_metrics, optimize_thresholds
-from .model import load_classifier_checkpoint
+from .model import load_classifier_checkpoint, resolve_project_path
 from .train import collect_predictions, resolve_device
 
 
@@ -33,7 +33,9 @@ def main():
     device = resolve_device(args.device)
     model, payload = load_classifier_checkpoint(args.checkpoint, args.detector_weights)
     config = payload["config"]
-    manifest = args.manifest or Path(config["manifest"])
+    manifest = args.manifest or resolve_project_path(config["manifest"])
+    if not manifest.is_file():
+        raise FileNotFoundError(f"Checkpoint manifest {manifest} not found; pass --manifest")
     dataset = PhenologyDataset(manifest, args.split, int(config["image_size"]), augment=False)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.workers)
     model.to(device)
