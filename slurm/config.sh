@@ -15,4 +15,9 @@ activate_env() {
     module load python3.11-anaconda/2024.02
     source "$(conda info --base)/etc/profile.d/conda.sh"
     conda activate "$ENV_NAME"
+    # An env without its own python silently falls back to the module's base python.
+    if [ "$(command -v python)" != "$CONDA_PREFIX/bin/python" ]; then
+        echo "conda env $ENV_NAME has no python of its own; rerun bash slurm/setup.sh" >&2
+        return 1
+    fi
 }
