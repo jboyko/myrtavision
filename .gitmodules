@@ -1,0 +1,4 @@
+[submodule "third_party/LeafMachine2"]
+	path = third_party/LeafMachine2
+	url = https://github.com/Gene-Weaver/LeafMachine2.git
+	ignore = untracked

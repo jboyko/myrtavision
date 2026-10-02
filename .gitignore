@@ -1,0 +1,25 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+*.pt
+
+# Rebuildable folders; symlinks into /scratch on Great Lakes, so no trailing slash
+/data
+/runs
+/logs
+
+# Raw GBIF exports (scores.csv is derived from them)
+/training_data
+
+# Legacy generated datasets and run outputs
+legacy/*/data
+legacy/*/runs
+
+# Slide-building leftovers
+.codex*/
+.chart-data-*/
+/output
+
+lm2_predictions*.csv
+leafmachine_predictions*.csv

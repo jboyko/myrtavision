@@ -1,0 +1,14 @@
+torch
+torchvision
+numpy
+Pillow
+PyYAML
+requests
+opencv-python
+matplotlib
+
+# Minimal runtime needed by LeafMachine2's bundled YOLOv5 detector.
+pandas>=2.2
+seaborn>=0.13
+setuptools<81
+tqdm>=4.65
