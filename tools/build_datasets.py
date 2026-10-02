@@ -7,7 +7,9 @@ are folders of symlinks into that cache:
     datasets/combo/{train,val,test}/<combination>/<image_id>.jpg
     datasets/binary_<organ>/{train,val,test}/{absent,present}/<image_id>.jpg
 
-Every method uses the same manifest, so splits match across methods.
+Every method uses the same manifest, so splits match across methods. Exits
+non-zero if any manifest image is missing, so training never starts on a
+partial set.
 """
 import argparse
 import csv
@@ -59,37 +61,37 @@ def main():
     args = parser.parse_args()
 
     rows = list(csv.DictReader(args.manifest.open()))
-    present = [row for row in rows if (PROJECT_ROOT / row["path"]).is_file()]
-    missing = Counter(row["split"] for row in rows if row not in present)
-    print(f"{len(present)}/{len(rows)} manifest images on disk; missing by split: {dict(missing) or 'none'}")
+    missing = [row for row in rows if not (PROJECT_ROOT / row["path"]).is_file()]
+    if missing:
+        by_split = dict(Counter(row["split"] for row in missing))
+        examples = ", ".join(row["image_id"] for row in missing[:5])
+        raise SystemExit(
+            f"{len(missing)}/{len(rows)} manifest images missing (by split: {by_split}), e.g. {examples}. "
+            "Download them on the login node (tools/download_images.py) or list unrecoverable ones in "
+            "splits/unavailable.csv and regenerate the split."
+        )
+    print(f"all {len(rows)} manifest images on disk")
 
     cache = PROJECT_ROOT / "data" / "derived" / str(args.maxpx)
     cache.mkdir(parents=True, exist_ok=True)
-    tasks = [(PROJECT_ROOT / row["path"], cache / f"{row['image_id']}.jpg", args.maxpx) for row in present]
+    tasks = [(PROJECT_ROOT / row["path"], cache / f"{row['image_id']}.jpg", args.maxpx) for row in rows]
     with ProcessPoolExecutor(args.workers) as pool:
         list(pool.map(derive, tasks, chunksize=8))
     print(f"derived cache: {cache}")
 
-    link_tree(present, args.out / "combo", combination, cache)
+    link_tree(rows, args.out / "combo", combination, cache)
     for organ in ORGANS:
         link_tree(
-            present,
+            rows,
             args.out / f"binary_{organ}",
             lambda row, organ=organ: "present" if row[organ] == "1" else "absent",
             cache,
         )
 
     print(f"{'split':6} {'images':>6}  combination counts")
-    classes = {split: Counter(combination(row) for row in present if row["split"] == split) for split in SPLITS}
     for split in SPLITS:
-        counts = classes[split]
+        counts = Counter(combination(row) for row in rows if row["split"] == split)
         print(f"{split:6} {sum(counts.values()):6}  " + ", ".join(f"{k} {v}" for k, v in sorted(counts.items())))
-
-    # ultralytics logs an error but keeps training if val lacks a train class,
-    # which silently breaks best-checkpoint selection.
-    gaps = {split: sorted(set(classes["train"]) - set(classes[split])) for split in ("val", "test")}
-    if any(gaps.values()):
-        raise SystemExit(f"Combination classes missing from a split (failed downloads?): {gaps}")
 
 
 if __name__ == "__main__":

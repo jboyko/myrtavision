@@ -4,10 +4,14 @@ Image keys and URLs come from scores.csv (gbifID plus an MD5 prefix of the URL,
 as in leafmachine_classifier/prepare.py). Existing files are skipped, payloads
 are verified before they replace anything, and failures are written to
 data/download_failures.csv so they can be retried or removed deliberately.
+
+Run on a login node: the compute-node proxy blocks some image hosts. Exits
+non-zero if any image is still missing.
 """
 import argparse
 import csv
 import hashlib
+import sys
 import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -82,6 +86,8 @@ def main():
     print(f"{len(wanted) - len(failures)}/{len(wanted)} images present; {len(failures)} failed -> {failure_log}")
     for key, url, error in failures[:20]:
         print(f"  fail {key} {url}: {error}")
+    if failures:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

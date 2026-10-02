@@ -45,6 +45,12 @@ def main():
     parser.add_argument("--scores", type=Path, default=PROJECT_ROOT / "scores.csv")
     parser.add_argument("--images", type=Path, default=PROJECT_ROOT / "data/images")
     parser.add_argument("--out", type=Path, default=PROJECT_ROOT / "splits/phenology_v2.csv")
+    parser.add_argument(
+        "--exclude",
+        type=Path,
+        default=PROJECT_ROOT / "splits/unavailable.csv",
+        help="images that cannot be downloaded (image_id column); left out of the split",
+    )
     parser.add_argument("--val", type=float, default=0.15)
     parser.add_argument("--test", type=float, default=0.15)
     parser.add_argument("--seed", type=int, default=26)
@@ -60,6 +66,10 @@ def main():
     if args.out.exists() and not args.force:
         raise FileExistsError(f"Refusing to replace stable split without --force: {args.out}")
 
+    excluded = set()
+    if args.exclude and args.exclude.is_file():
+        excluded = {row["image_id"] for row in csv.DictReader(args.exclude.open())}
+
     rows = []
     missing = []
     with args.scores.open() as handle:
@@ -68,6 +78,8 @@ def main():
             if not any(flags) and row["none"] != "1":
                 continue
             key = image_key(row)
+            if key in excluded:
+                continue
             image = args.images / f"{key}.jpg"
             if args.require_images and not image.is_file():
                 missing.append(key)
@@ -116,6 +128,8 @@ def main():
         writer.writerows(sorted(rows, key=lambda row: (row["split"], row["gbif_id"], row["image_id"])))
 
     print(f"wrote {len(rows)} images from {len(grouped)} specimens to {args.out}")
+    if excluded:
+        print(f"excluded {len(excluded)} unavailable images listed in {args.exclude}")
     if missing:
         print(f"skipped {len(missing)} missing images")
     print(f"{'split':7} {'images':>7} {'groups':>7} {'bud':>6} {'flower':>7} {'fruit':>6}")

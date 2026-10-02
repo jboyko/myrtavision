@@ -26,15 +26,15 @@ of a sheet is cropped, and padded locations are excluded from pooling.
 
 ## Data split
 
-The manifest shared by every method is `../splits/phenology_v2.csv`. Its 2,025 images are
+The manifest shared by every method is `../splits/phenology_v2.csv`. Its 1,890 images are
 grouped by GBIF specimen ID before splitting, preventing different images of
 one specimen from leaking across partitions:
 
 | split | images | specimens |
 |---|---:|---:|
-| train | 1,404 | 1,360 |
-| validation | 320 | 293 |
-| test | 301 | 293 |
+| train | 1,329 | 1,280 |
+| validation | 280 | 275 |
+| test | 281 | 275 |
 
 Regenerate it only deliberately:
 
@@ -68,7 +68,7 @@ fine-tune only the final neck modules with a much lower learning rate:
   --name neck20_1280
 ```
 
-Do not begin by unfreezing the entire 86.5M-parameter network on 1,404 training
+Do not begin by unfreezing the entire 86.5M-parameter network on 1,329 training
 images.
 
 ## Evaluation and prediction

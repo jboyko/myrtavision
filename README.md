@@ -17,7 +17,7 @@ and feature pyramid as a weakly supervised multiscale classifier:
 
 Raw inputs remain stable and shared:
 
-- `scores.csv`: sheet-level phenology annotations (2,025 scored images)
+- `scores.csv`: sheet-level phenology annotations (2,025 scored images; 135 unavailable, see `splits/unavailable.csv`)
 - `splits/phenology_v2.csv`: specimen-grouped train/val/test split used by every method
 - `data/images`: native-resolution herbarium images, downloaded by `tools/download_images.py`
 
@@ -26,8 +26,8 @@ LeafMachine2 is vendored at `third_party/LeafMachine2`, pinned to commit
 checkpoint is `third_party/LeafMachine2/checkpoints/best.pt`.
 
 The classifier implementation is under `leafmachine_classifier`. The split
-manifest contains 1,404 training, 320 validation, and 301 held-out test images
-(1,946 specimens) with no GBIF specimen crossing partitions.
+manifest contains 1,329 training, 280 validation, and 281 held-out test images
+(1,830 specimens) with no GBIF specimen crossing partitions.
 
 ```bash
 .venv/bin/python -m leafmachine_classifier.train --name frozen_1280
@@ -69,7 +69,9 @@ Code lives in the home-directory clone. Rebuildable data (`data/`, `datasets/`, 
 git clone --recurse-submodules <repo> ~/myrtavision && cd ~/myrtavision
 scp third_party/LeafMachine2/checkpoints/best.pt greatlakes:myrtavision/third_party/LeafMachine2/checkpoints/   # from the Mac
 bash slurm/setup.sh                       # once: conda env, checkpoint check, scratch symlinks, YOLO weights
-PREP=$(sbatch --parsable slurm/prep.sbatch)   # download images, build cache + YOLO datasets
+rsync -av --ignore-existing data/images/ greatlakes:myrtavision/data/images/   # from the Mac: images some hosts no longer serve
+source slurm/config.sh && activate_env && python tools/download_images.py      # login node; compute-node proxy blocks some hosts
+PREP=$(sbatch --parsable slurm/prep.sbatch)   # build cache + YOLO datasets; fails if any manifest image is missing
 sbatch --dependency=afterok:$PREP --array=1-$(($(wc -l < slurm/experiments.tsv) - 1))%5 slurm/train.sbatch
 sbatch slurm/eval.sbatch                  # zero-shot baseline + results/compare_val.csv
 ```
@@ -77,7 +79,8 @@ sbatch slurm/eval.sbatch                  # zero-shot baseline + results/compare
 | File | Purpose |
 |------|---------|
 | `slurm/experiments.tsv` | One run per line (name, method, model, imgsz, batch, epochs, seed, extra args); add lines to try more |
-| `tools/download_images.py` | Downloads manifest images; failures go to `data/download_failures.csv` |
+| `tools/download_images.py` | Downloads manifest images (login node); failures go to `data/download_failures.csv` |
+| `splits/unavailable.csv` | Scored images no host serves any more; `prepare.py` leaves them out of the split |
 | `tools/build_datasets.py` | 1536 px cache and `datasets/combo`, `datasets/binary_<organ>` symlink trees |
 | `yolo_classifier/train.py` | Trains `yolo_combo` / `yolo_binary` runs and writes val/test probabilities |
 | `tools/compare.py` | Per-organ F1 (thresholds chosen on val), average precision, exact match for every run |
