@@ -2,8 +2,10 @@
 
 A combo model's organ probability is the summed softmax over the combinations
 containing that organ. Grad-CAM on the last convolution before pooling shows
-where the evidence for that sum comes from; maps are averaged over the
-ensemble members. Each figure shows the full sheet with the square the model
+where the evidence for the organ's log-odds (combinations with it vs without
+it) comes from. Log-odds, not log-probability: the latter saturates when the
+model is confident, which blanks the map for exactly the organs it is sure of.
+Maps are averaged over the ensemble members. Each figure shows the full sheet with the square the model
 actually sees (ultralytics center-crops portrait sheets at predict time) and
 the bud / flower / fruit maps inside that square.
 
@@ -61,15 +63,15 @@ class OrganCAM:
             # ultralytics loads weights frozen; a grad-requiring input gives the features a graph
             output = self.model(batch.clone().requires_grad_(True))
             logits = output[1] if isinstance(output, tuple) else output
-            log_probs = logits.log_softmax(1)[0]
+            logits = logits[0]
             maps, probabilities = [], []
             for members in self.members:
-                # log P(organ) = logsumexp of log-probabilities of combinations containing it
-                score = log_probs[members].logsumexp(0)
-                (grad,) = torch.autograd.grad(score, self.features, retain_graph=True)
+                # log-odds(organ) = logsumexp(logits with organ) - logsumexp(logits without)
+                log_odds = logits[members].logsumexp(0) - logits[~members].logsumexp(0)
+                (grad,) = torch.autograd.grad(log_odds, self.features, retain_graph=True)
                 weights = grad.mean(dim=(2, 3), keepdim=True)
                 maps.append(F.relu((weights * self.features).sum(1))[0].detach())
-                probabilities.append(float(score.detach().exp()))
+                probabilities.append(float(log_odds.detach().sigmoid()))
         return torch.stack(maps), probabilities
 
 
