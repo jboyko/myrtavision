@@ -11,6 +11,8 @@ therefore optimistic. Average precision is threshold-free.
 """
 import argparse
 import csv
+import re
+import statistics
 import sys
 from pathlib import Path
 
@@ -96,6 +98,21 @@ def main():
             f"{row['fruit_f1']:8.3f} {row['macro_f1']:7.3f} {row['macro_ap']:7.3f} {row['exact']:6.3f}{short}"
         )
     print(f"wrote {out}")
+
+    # Runs named <config>_s<N> are seed repeats of <config>; summarize each group.
+    groups = {}
+    for row in rows:
+        if row["split"] == "val":
+            groups.setdefault(re.sub(r"_s\d+$", "", row["name"]), []).append(row)
+    repeated = {config: members for config, members in groups.items() if len(members) > 1}
+    if repeated:
+        print(f"\nval seed repeats: mean (min-max)")
+        for config, members in sorted(repeated.items(), key=lambda item: -statistics.mean(r["macro_ap"] for r in item[1])):
+            parts = []
+            for metric in ("macro_f1", "macro_ap", "exact"):
+                values = [member[metric] for member in members]
+                parts.append(f"{metric} {statistics.mean(values):.3f} ({min(values):.3f}-{max(values):.3f})")
+            print(f"{config:24} n_seeds={len(members)}  " + "  ".join(parts))
     if not args.test:
         print("val F1 uses thresholds chosen on val (optimistic); compare methods on macro AP too")
 

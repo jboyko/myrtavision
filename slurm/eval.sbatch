@@ -1,6 +1,7 @@
 #!/bin/bash
-# Zero-shot LeafMachine2 detector baseline on val/test, then score every run with
-# one set of metrics (thresholds chosen on val).
+# Zero-shot LeafMachine2 detector baseline on val/test, ensembles from
+# slurm/ensembles.tsv, then score every run with one set of metrics (thresholds
+# chosen on val).
 #     sbatch slurm/eval.sbatch             # val only; choose methods on this
 #     sbatch slurm/eval.sbatch --test      # also score held-out test; run once
 #SBATCH --job-name=myrta_eval
@@ -21,4 +22,5 @@ for SPLIT in val test; do
     OUT="results/predictions/lm2_zeroshot/$SPLIT.csv"
     [ -f "$OUT" ] || python lm2_predict.py "datasets/combo/$SPLIT" --device 0 --out "$OUT"
 done
+python tools/ensemble.py
 python tools/compare.py "$@"
