@@ -14,10 +14,15 @@ TORCH_INDEX=https://download.pytorch.org/whl/cu126
 activate_env() {
     module load python3.11-anaconda/2024.02
     source "$(conda info --base)/etc/profile.d/conda.sh"
+    # sbatch copies the submitting shell's environment. If an env was active there,
+    # `conda activate` is a no-op and the module's base python (just put first on
+    # PATH by module load) wins. Start from a clean conda stack instead.
+    while [ "${CONDA_SHLVL:-0}" -gt 0 ]; do
+        conda deactivate
+    done
     conda activate "$ENV_NAME"
-    # An env without its own python silently falls back to the module's base python.
     if [ "$(command -v python)" != "$CONDA_PREFIX/bin/python" ]; then
-        echo "conda env $ENV_NAME has no python of its own; rerun bash slurm/setup.sh" >&2
+        echo "python is $(command -v python), not the $ENV_NAME env's ($CONDA_PREFIX)" >&2
         return 1
     fi
 }

@@ -10,13 +10,13 @@ source slurm/config.sh
 module load python3.11-anaconda/2024.02
 source "$(conda info --base)/etc/profile.d/conda.sh"
 if ! conda env list | grep -q "^${ENV_NAME} "; then
-    conda create -y -n "$ENV_NAME" python=3.11
+    conda create -y -n "$ENV_NAME" python=3.13
 fi
 conda activate "$ENV_NAME"
 # An env created without python falls back to the module's read-only base python,
 # and pip then installs into ~/.local, which PYTHONNOUSERSITE hides.
 if [ ! -x "$CONDA_PREFIX/bin/python" ]; then
-    conda install -y python=3.11
+    conda install -y python=3.13
 fi
 hash -r
 if [ "$(command -v python)" != "$CONDA_PREFIX/bin/python" ]; then
