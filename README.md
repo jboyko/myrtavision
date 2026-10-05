@@ -85,7 +85,7 @@ sbatch slurm/eval.sbatch                  # zero-shot baseline + results/compare
 | `yolo_classifier/train.py` | Trains `yolo_combo` / `yolo_binary` runs and writes val/test probabilities |
 | `tools/compare.py` | Per-organ F1 (thresholds chosen on val), average precision, exact match for every run |
 
-Choose methods on `val` (`compare_val.csv`); run `sbatch slurm/eval.sbatch --test` only once, for the final choice. LeafMachine head checkpoints (~1 MB) are committed; YOLO weights stay in `results/` but out of git.
+Choose methods on `val` (`compare_val.csv`); run `sbatch slurm/eval.sbatch --test` only once, for the final choice. Frozen LeafMachine head checkpoints (~1 MB) are committed; fine-tuned LM2 and YOLO weights stay in `results/` but out of git.
 
 ## Legacy approach
 

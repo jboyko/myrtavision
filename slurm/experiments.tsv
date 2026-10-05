@@ -6,3 +6,9 @@ combo_y26m_896	yolo_combo	yolo26m-cls.pt	896	16	100	0	-
 combo_y11m_640	yolo_combo	yolo11m-cls.pt	640	32	100	0	-
 binary_y26s_640	yolo_binary	yolo26s-cls.pt	640	32	100	0	-
 binary_y26m_640	yolo_binary	yolo26m-cls.pt	640	32	100	0	-
+combo_y26m_1280	yolo_combo	yolo26m-cls.pt	1280	8	100	0	-
+combo_y11m_896	yolo_combo	yolo11m-cls.pt	896	16	100	0	-
+combo_y26l_896	yolo_combo	yolo26l-cls.pt	896	8	100	0	-
+combo_y26m_896_s1	yolo_combo	yolo26m-cls.pt	896	16	100	1	-
+combo_y26m_896_s2	yolo_combo	yolo26m-cls.pt	896	16	100	2	-
+lm2_neck20_1280	lm2_head	-	1280	2	30	26	--init-checkpoint results/train/lm2_frozen_1280/best.pt --unfreeze-from 20
