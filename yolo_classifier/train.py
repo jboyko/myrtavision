@@ -39,10 +39,27 @@ def predict(model, files, imgsz, device, batch):
     return probabilities
 
 
+def private_view(dataset, run_dir):
+    """A per-run dataset folder whose splits link to the shared dataset.
+
+    ultralytics writes <split>.cache next to each split folder (it resolves the
+    dataset folder but not the split links), so concurrent runs on one shared
+    dataset race to delete and rewrite the same cache file.
+    """
+    view = run_dir / "data"
+    view.mkdir(parents=True, exist_ok=True)
+    for split in ("train", "val", "test"):
+        link = view / split
+        if link.is_symlink():
+            link.unlink()
+        link.symlink_to((dataset / split).resolve(), target_is_directory=True)
+    return view
+
+
 def train_one(data, model, run_dir, args):
     """Train one classifier and return the reloaded best checkpoint."""
     YOLO(str(model)).train(
-        data=str(data),
+        data=str(private_view(data, run_dir)),
         epochs=args.epochs,
         patience=args.patience,
         imgsz=args.imgsz,
