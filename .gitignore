@@ -27,3 +27,6 @@ legacy/*/runs
 
 lm2_predictions*.csv
 leafmachine_predictions*.csv
+
+# Grad-CAM figures (regenerate with slurm/explain.sbatch)
+/results/explain

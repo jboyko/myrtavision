@@ -83,6 +83,8 @@ sbatch slurm/eval.sbatch                  # zero-shot baseline + results/compare
 | `splits/unavailable.csv` | Scored images no host serves any more; `prepare.py` leaves them out of the split |
 | `tools/build_datasets.py` | 1536 px cache and `datasets/combo`, `datasets/binary_<organ>` symlink trees |
 | `yolo_classifier/train.py` | Trains `yolo_combo` / `yolo_binary` runs and writes val/test probabilities |
+| `tools/explain.py` | Grad-CAM bud/flower/fruit evidence maps for the final ensemble on val hits, misses, false alarms (`slurm/explain.sbatch`) |
+| `tools/ensemble.py` | Averages member runs' probabilities for ensembles in `slurm/ensembles.tsv` |
 | `tools/compare.py` | Per-organ F1 (thresholds chosen on val), average precision, exact match for every run |
 
 Choose methods on `val` (`compare_val.csv`); run `sbatch slurm/eval.sbatch --test` only once, for the final choice. Frozen LeafMachine head checkpoints (~1 MB) are committed; fine-tuned LM2 and YOLO weights stay in `results/` but out of git.
