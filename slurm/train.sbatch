@@ -33,11 +33,13 @@ lm2_head)
     OUT="results/train/$NAME"
     mkdir -p "$OUT" "results/predictions/$NAME"
     cp "runs/leafmachine_classifier/$NAME/best.pt" "runs/leafmachine_classifier/$NAME/history.csv" "$OUT/"
-    for SPLIT in val test; do
-        python -m leafmachine_classifier.evaluate "$OUT/best.pt" --split "$SPLIT" \
-            --batch-size "$BATCH" --workers "$SLURM_CPUS_PER_TASK" \
-            --out "results/predictions/$NAME/$SPLIT.csv"
-    done
+    python -m leafmachine_classifier.evaluate "$OUT/best.pt" --split val \
+        --batch-size "$BATCH" --workers "$SLURM_CPUS_PER_TASK" \
+        --out "results/predictions/$NAME/val.csv"
+    # Test predictions are saved for the final comparison but not scored here.
+    python -m leafmachine_classifier.evaluate "$OUT/best.pt" --split test --no-metrics \
+        --batch-size "$BATCH" --workers "$SLURM_CPUS_PER_TASK" \
+        --out "results/predictions/$NAME/test.csv"
     ;;
 yolo_combo|yolo_binary)
     # shellcheck disable=SC2086

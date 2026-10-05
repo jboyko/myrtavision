@@ -26,7 +26,14 @@ def main():
     parser.add_argument("--thresholds", type=float, nargs=3)
     parser.add_argument("--optimize", action="store_true", help="optimize thresholds on this split (validation only)")
     parser.add_argument("--out", type=Path, help="optional per-image prediction CSV")
+    parser.add_argument(
+        "--no-metrics",
+        action="store_true",
+        help="only write --out; keeps held-out test scores out of training logs",
+    )
     args = parser.parse_args()
+    if args.no_metrics and not args.out:
+        raise ValueError("--no-metrics needs --out")
     if args.optimize and args.split != "val":
         raise ValueError("Refusing to optimize thresholds on the held-out test split")
 
@@ -44,8 +51,9 @@ def main():
     if args.optimize:
         thresholds = optimize_thresholds(targets, probabilities)
         print("Thresholds optimized on these validation rows; metrics are optimistic.")
-    metrics = compute_metrics(targets, probabilities, thresholds)
-    print(format_metrics(metrics, thresholds))
+    if not args.no_metrics:
+        metrics = compute_metrics(targets, probabilities, thresholds)
+        print(format_metrics(metrics, thresholds))
 
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
