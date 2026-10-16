@@ -1,4 +1,4 @@
-"""Train a DINOv3 phenology classifier and export per-organ probabilities.
+"""Train a DINOv2 or DINOv3 phenology classifier and export per-organ probabilities.
 
 Three ways to adapt the backbone, chosen with --mode:
 
@@ -7,8 +7,9 @@ Three ways to adapt the backbone, chosen with --mode:
     last    the last --unfreeze blocks train, with layer-wise learning-rate decay
 
 Sheets keep their aspect ratio: the long side is resized to --image-size and
-both sides are rounded to whole 16-pixel patches. Images come from the derived
-cache built by tools/build_datasets.py when it exists.
+both sides are rounded to whole patches (14 px for DINOv2, 16 for DINOv3).
+Images come from the derived cache built by tools/build_datasets.py when it
+exists.
 
 The checkpoint with the best val macro average precision is kept. Its val and
 test probabilities go to results/predictions/<name>/{val,test}.csv in the
@@ -36,15 +37,15 @@ from torchvision.transforms import ColorJitter
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
-from dino_classifier.model import MEAN, ORGANS, PATCH, STD, DinoPhenology, patch_mask_from_pixels  # noqa: E402
+from dino_classifier.model import MEAN, ORGANS, STD, DinoPhenology, patch_mask_from_pixels  # noqa: E402
 from leafmachine_classifier.metrics import average_precision  # noqa: E402
 
 Image.MAX_IMAGE_PIXELS = None
 
 
 class Sheets(Dataset):
-    def __init__(self, rows, image_size, cache, augment):
-        self.rows, self.image_size, self.cache, self.augment = rows, image_size, cache, augment
+    def __init__(self, rows, image_size, patch, cache, augment):
+        self.rows, self.image_size, self.patch, self.cache, self.augment = rows, image_size, patch, cache, augment
         self.jitter = ColorJitter(brightness=0.1, contrast=0.1, saturation=0.05, hue=0.01)
 
     def __len__(self):
@@ -60,7 +61,7 @@ class Sheets(Dataset):
         scale = self.image_size / max(image.size)
         if self.augment:
             scale *= random.uniform(0.85, 1.0)
-        width, height = (max(PATCH, round(side * scale / PATCH) * PATCH) for side in image.size)
+        width, height = (max(self.patch, round(side * scale / self.patch) * self.patch) for side in image.size)
         image = TF.to_dtype(TF.pil_to_tensor(image.resize((width, height), Image.Resampling.BILINEAR)), torch.float32, scale=True)
         valid = torch.ones(1, height, width)
         if self.augment:
@@ -100,7 +101,7 @@ def predict(model, loader, device, amp):
     ids, targets, probabilities = [], [], []
     for images, valid, target, batch_ids in loader:
         with autocast(device, amp):
-            logits, _ = model(images.to(device, non_blocking=True), patch_mask_from_pixels(valid).to(device))
+            logits, _ = model(images.to(device, non_blocking=True), patch_mask_from_pixels(valid, model.patch).to(device))
         probabilities.append(logits.float().sigmoid().cpu())
         targets.append(target)
         ids += batch_ids
@@ -114,7 +115,7 @@ def macro_ap(targets, probabilities):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", required=True)
-    parser.add_argument("--backbone", required=True, help="local folder of a DINOv3 checkpoint, e.g. weights/dinov3-vitb16")
+    parser.add_argument("--backbone", required=True, help="local folder of a DINOv2/v3 checkpoint, e.g. weights/dinov2-vitb14-reg")
     parser.add_argument("--mode", choices=("frozen", "lora", "last"), required=True)
     parser.add_argument("--unfreeze", type=int, default=4, help="blocks trained in --mode last")
     parser.add_argument("--lora-rank", type=int, default=16)
@@ -144,9 +145,10 @@ def main():
     device = torch.device(args.device)
     rows = list(csv.DictReader(args.manifest.open()))
     splits = {split: [row for row in rows if row["split"] == split][: args.limit] for split in ("train", "val", "test")}
+    model = DinoPhenology(args.backbone, args.mode, lora_rank=args.lora_rank, unfreeze=args.unfreeze).to(device)
     loader = {
         split: DataLoader(
-            Sheets(split_rows, args.image_size, args.cache, augment=split == "train"),
+            Sheets(split_rows, args.image_size, model.patch, args.cache, augment=split == "train"),
             batch_size=args.batch_size, shuffle=split == "train", num_workers=args.workers,
             collate_fn=collate, pin_memory=device.type == "cuda", drop_last=split == "train",
             persistent_workers=args.workers > 0,
@@ -154,7 +156,6 @@ def main():
         for split, split_rows in splits.items()
     }
 
-    model = DinoPhenology(args.backbone, args.mode, lora_rank=args.lora_rank, unfreeze=args.unfreeze).to(device)
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
     print(f"{args.name}: {args.mode}, {trainable / 1e6:.2f}M of {total / 1e6:.1f}M parameters train; "
@@ -174,7 +175,7 @@ def main():
         optimizer.zero_grad(set_to_none=True)
         for index, (images, valid, targets, _) in enumerate(loader["train"], 1):
             with autocast(device, args.amp):
-                logits, _ = model(images.to(device, non_blocking=True), patch_mask_from_pixels(valid).to(device))
+                logits, _ = model(images.to(device, non_blocking=True), patch_mask_from_pixels(valid, model.patch).to(device))
             loss = F.binary_cross_entropy_with_logits(logits.float(), targets.to(device))
             scaler.scale(loss / args.accumulate).backward()
             losses.append(loss.item())

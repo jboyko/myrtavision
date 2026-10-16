@@ -1,3 +1,4 @@
 name	members
 ens_y26l_896_x3	combo_y26l_896,combo_y26l_896_s1,combo_y26l_896_s2
-ens_yolo_dino_b_lora	ens_y26l_896_x3,dino_b_lora
+ens_yolo_dinov2_b_lora	ens_y26l_896_x3,dinov2_b_lora
+ens_yolo_dinov3_b_lora	ens_y26l_896_x3,dinov3_b_lora

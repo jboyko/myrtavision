@@ -59,7 +59,7 @@ Several methods are compared on the same split and scored by the same code:
 | method | what it is |
 |---|---|
 | `yolo_combo` | ultralytics YOLO-cls over the eight combinations; organ probability = summed softmax |
-| `dino` | DINOv3 ViT patch tokens + per-organ attention pooling (`dino_classifier`); backbone `frozen`, `lora`, or `last` N blocks trained |
+| `dino` | DINOv2 or DINOv3 ViT patch tokens + per-organ attention pooling (`dino_classifier`); backbone `frozen`, `lora`, or `last` N blocks trained |
 | `yolo_binary`, `lm2_head` | still supported by `train.sbatch` but dropped after the v2 comparison |
 
 Results from the 1,890-image v2 split are archived in `results/v2/`.
@@ -70,7 +70,7 @@ Code lives in the home-directory clone. Rebuildable data (`data/`, `datasets/`, 
 git clone --recurse-submodules <repo> ~/myrtavision && cd ~/myrtavision
 scp third_party/LeafMachine2/checkpoints/best.pt greatlakes:myrtavision/third_party/LeafMachine2/checkpoints/   # from the Mac
 hf auth login                             # once, after accepting the DINOv3 license on Hugging Face
-bash slurm/setup.sh                       # once: conda env, checkpoint check, scratch symlinks, YOLO and DINOv3 weights
+bash slurm/setup.sh                       # once: conda env, checkpoint check, scratch symlinks, YOLO and DINO weights
 rsync -av --ignore-existing data/images/ greatlakes:myrtavision/data/images/   # from the Mac: images some hosts no longer serve
 source slurm/config.sh && activate_env && python tools/download_images.py      # login node; compute-node proxy blocks some hosts
 PREP=$(sbatch --parsable slurm/prep.sbatch)   # build cache + YOLO datasets; fails if any manifest image is missing
@@ -85,7 +85,7 @@ sbatch slurm/eval.sbatch                  # ensembles + results/compare_val.csv
 | `splits/unavailable.csv` | Scored images no host serves any more; `prepare.py` leaves them out of the split |
 | `tools/build_datasets.py` | 1536 px cache and `datasets/combo`, `datasets/binary_<organ>` symlink trees |
 | `yolo_classifier/train.py` | Trains `yolo_combo` / `yolo_binary` runs and writes val/test probabilities |
-| `dino_classifier/train.py` | Trains `dino` runs on the 1536 px cache and writes val/test probabilities |
+| `dino_classifier/train.py` | Trains `dino` runs (DINOv2 or v3) on the 1536 px cache and writes val/test probabilities |
 | `tools/explain.py` | Grad-CAM bud/flower/fruit evidence maps for the final ensemble on val hits, misses, false alarms (`slurm/explain.sbatch`) |
 | `tools/ensemble.py` | Averages member runs' probabilities for ensembles in `slurm/ensembles.tsv` |
 | `tools/compare.py` | Per-organ F1 (thresholds chosen on val), average precision, exact match for every run |

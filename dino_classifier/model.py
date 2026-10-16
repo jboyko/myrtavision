@@ -1,4 +1,4 @@
-"""DINOv3 backbone, LoRA adapters, and a per-organ attention-pooling head.
+"""DINOv2/DINOv3 backbone, LoRA adapters, and a per-organ attention-pooling head.
 
 Buds, flowers, and fruits all occupy a small part of a sheet, so the head reads
 every patch token rather than the global CLS token. Each organ has its own
@@ -16,8 +16,7 @@ import torch.nn.functional as F
 from transformers import AutoModel
 
 ORGANS = ("bud", "flower", "fruit")
-PATCH = 16
-# DINOv3 LVD-1689M weights use ImageNet normalization.
+# DINOv2 and DINOv3 LVD-1689M weights both use ImageNet normalization.
 MEAN = (0.485, 0.456, 0.406)
 STD = (0.229, 0.224, 0.225)
 ATTENTION_PROJECTIONS = ("q_proj", "k_proj", "v_proj", "o_proj")
@@ -67,10 +66,11 @@ class DinoPhenology(nn.Module):
         super().__init__()
         self.backbone = AutoModel.from_pretrained(backbone, attn_implementation="sdpa")
         config = self.backbone.config
-        self.prefix = 1 + config.num_register_tokens
+        self.prefix = 1 + getattr(config, "num_register_tokens", 0)
+        self.patch = config.patch_size  # 14 for DINOv2, 16 for DINOv3
         self.mode = mode
         self.backbone.requires_grad_(False)
-        blocks = self.backbone.model.layer
+        blocks = self.blocks()
         if mode == "lora":
             for block in blocks:
                 for name in ATTENTION_PROJECTIONS:
@@ -78,12 +78,19 @@ class DinoPhenology(nn.Module):
         elif mode == "last":
             for block in blocks[-unfreeze:]:
                 block.requires_grad_(True)
-            self.backbone.norm.requires_grad_(True)
+            self.final_norm().requires_grad_(True)
         elif mode != "frozen":
             raise ValueError(f"unknown mode {mode}")
         if mode != "frozen":
             self.backbone.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
         self.head = AttentionPool(config.hidden_size, hidden, dropout)
+
+    def blocks(self):
+        encoder = self.backbone.encoder if hasattr(self.backbone, "encoder") else self.backbone.model  # v2, v3
+        return encoder.layer
+
+    def final_norm(self):
+        return self.backbone.layernorm if hasattr(self.backbone, "layernorm") else self.backbone.norm  # v2, v3
 
     def train(self, mode: bool = True):
         super().train(mode)
@@ -110,8 +117,8 @@ class DinoPhenology(nn.Module):
             params = [p for n, p in self.backbone.named_parameters() if p.requires_grad]
             groups.append({"params": params, "lr": backbone_lr})
         elif self.mode == "last":
-            groups.append({"params": list(self.backbone.norm.parameters()), "lr": backbone_lr})
-            trainable = [block for block in self.backbone.model.layer if any(p.requires_grad for p in block.parameters())]
+            groups.append({"params": list(self.final_norm().parameters()), "lr": backbone_lr})
+            trainable = [block for block in self.blocks() if any(p.requires_grad for p in block.parameters())]
             for depth, block in enumerate(reversed(trainable)):
                 groups.append({"params": list(block.parameters()), "lr": backbone_lr * layer_decay**depth})
         for group in groups:
@@ -119,6 +126,6 @@ class DinoPhenology(nn.Module):
         return groups
 
 
-def patch_mask_from_pixels(valid: torch.Tensor) -> torch.Tensor:
+def patch_mask_from_pixels(valid: torch.Tensor, patch: int) -> torch.Tensor:
     """(batch, H, W) pixel validity -> (batch, patches) in the backbone's row-major patch order."""
-    return F.max_pool2d(valid.float().unsqueeze(1), PATCH).flatten(1) > 0
+    return F.max_pool2d(valid.float().unsqueeze(1), patch).flatten(1) > 0

@@ -2,8 +2,9 @@
 # One-time setup on a Great Lakes login node, run from the repo root (~/myrtavision):
 #     bash slurm/setup.sh
 # Creates the conda env, fetches the LeafMachine2 submodule, puts the big folders
-# on /scratch (symlinked into the repo), and downloads pretrained YOLO and DINOv3
-# weights (DINOv3 is gated: accept its license on Hugging Face and `hf auth login` first).
+# on /scratch (symlinked into the repo), and downloads pretrained YOLO and DINO
+# weights. DINOv3 is gated (accept its license on Hugging Face and `hf auth login`);
+# until access is granted its download only warns, and rerunning setup fetches it.
 # The LeafMachine2 checkpoint is not downloadable; scp it from the Mac first.
 set -euo pipefail
 source slurm/config.sh
@@ -51,7 +52,8 @@ for w in $PRETRAINED; do
 done
 cd ..
 for w in $DINO; do
-    [ -f "weights/$w/config.json" ] || hf download "facebook/$w-pretrain-lvd1689m" --local-dir "weights/$w"
+    [ -f "weights/$w/config.json" ] || hf download "facebook/$w" --local-dir "weights/$w" \
+        || echo "WARNING: could not download facebook/$w (gated? accept the license, then hf auth login)" >&2
 done
 
 python -c "import torch, transformers, ultralytics; print('torch', torch.__version__, '| CUDA build', torch.version.cuda, '| ultralytics', ultralytics.__version__, '| transformers', transformers.__version__)"
