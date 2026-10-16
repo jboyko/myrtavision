@@ -53,7 +53,7 @@ def fetch(key, url, images, retries, timeout):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--scores", type=Path, default=PROJECT_ROOT / "scores.csv")
-    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v2.csv")
+    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v3.csv")
     parser.add_argument("--images", type=Path, default=PROJECT_ROOT / "data/images")
     parser.add_argument("--workers", type=int, default=16)
     parser.add_argument("--retries", type=int, default=4)

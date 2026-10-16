@@ -1,18 +1,9 @@
 name	method	model	imgsz	batch	epochs	seed	extra
-lm2_frozen_1280	lm2_head	-	1280	2	30	26	-
-combo_y26s_640	yolo_combo	yolo26s-cls.pt	640	32	100	0	-
-combo_y26m_640	yolo_combo	yolo26m-cls.pt	640	32	100	0	-
-combo_y26m_896	yolo_combo	yolo26m-cls.pt	896	16	100	0	-
-combo_y11m_640	yolo_combo	yolo11m-cls.pt	640	32	100	0	-
-binary_y26s_640	yolo_binary	yolo26s-cls.pt	640	32	100	0	-
-binary_y26m_640	yolo_binary	yolo26m-cls.pt	640	32	100	0	-
-combo_y26m_1280	yolo_combo	yolo26m-cls.pt	1280	8	100	0	-
-combo_y11m_896	yolo_combo	yolo11m-cls.pt	896	16	100	0	-
 combo_y26l_896	yolo_combo	yolo26l-cls.pt	896	8	100	0	-
-combo_y26m_896_s1	yolo_combo	yolo26m-cls.pt	896	16	100	1	-
-combo_y26m_896_s2	yolo_combo	yolo26m-cls.pt	896	16	100	2	-
-lm2_neck20_1280	lm2_head	-	1280	2	30	26	--init-checkpoint results/train/lm2_frozen_1280/best.pt --unfreeze-from 20
-combo_y11m_896_s1	yolo_combo	yolo11m-cls.pt	896	16	100	1	-
-combo_y11m_896_s2	yolo_combo	yolo11m-cls.pt	896	16	100	2	-
 combo_y26l_896_s1	yolo_combo	yolo26l-cls.pt	896	8	100	1	-
 combo_y26l_896_s2	yolo_combo	yolo26l-cls.pt	896	8	100	2	-
+combo_y26l_1280	yolo_combo	yolo26l-cls.pt	1280	4	100	0	-
+dino_b_frozen	dino	dinov3-vitb16	1536	4	30	0	--mode frozen --accumulate 4
+dino_b_lora	dino	dinov3-vitb16	1536	2	20	0	--mode lora --accumulate 8
+dino_b_last4	dino	dinov3-vitb16	1536	2	20	0	--mode last --unfreeze 4 --backbone-lr 2e-5 --accumulate 8
+dino_l_lora	dino	dinov3-vitl16	1536	1	15	0	--mode lora --accumulate 16

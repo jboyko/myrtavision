@@ -10,7 +10,7 @@
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=48G
-#SBATCH --time=0-12:00:00
+#SBATCH --time=1-00:00:00
 #SBATCH --output=logs/%x-%A_%a.log
 set -euo pipefail
 cd "$SLURM_SUBMIT_DIR"
@@ -46,6 +46,13 @@ yolo_combo|yolo_binary)
     python yolo_classifier/train.py --task "${METHOD#yolo_}" --model "weights/$MODEL" \
         --name "$NAME" --imgsz "$IMGSZ" --batch "$BATCH" --epochs "$EPOCHS" \
         --seed "$SEED" --workers "$SLURM_CPUS_PER_TASK" $EXTRA
+    ;;
+dino)
+    # Writes its own results/train/<name> and results/predictions/<name>.
+    # shellcheck disable=SC2086
+    python -m dino_classifier.train --name "$NAME" --backbone "weights/$MODEL" \
+        --image-size "$IMGSZ" --batch-size "$BATCH" --epochs "$EPOCHS" --seed "$SEED" \
+        --workers "$SLURM_CPUS_PER_TASK" $EXTRA
     ;;
 *)
     echo "Unknown method $METHOD" >&2

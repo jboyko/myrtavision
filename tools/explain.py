@@ -131,7 +131,7 @@ def main():
     parser.add_argument("--weights", nargs="+", type=Path,
                         default=sorted((PROJECT_ROOT / "results/train").glob("combo_y26l_896*/best.pt")))
     parser.add_argument("--ensemble", default="ens_y26l_896_x3", help="predictions/thresholds used to pick examples")
-    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v2.csv")
+    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v3.csv")
     parser.add_argument("--images", nargs="*", type=Path, help="explain these images instead of picking val examples")
     parser.add_argument("--per-group", type=int, default=3, help="examples per organ x outcome")
     parser.add_argument("--imgsz", type=int, default=896)

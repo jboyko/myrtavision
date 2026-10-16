@@ -71,3 +71,13 @@ def format_metrics(metrics: dict, thresholds=(0.5, 0.5, 0.5)) -> str:
         f"macro F1: {metrics['macro_f1']:.3f}  exact: {metrics['exact_match']:.3f}  n={metrics['n']}"
     )
     return "\n".join(lines)
+
+
+def average_precision(truth: torch.Tensor, scores: torch.Tensor) -> float:
+    order = scores.argsort(descending=True)
+    truth = truth[order].bool()
+    if not truth.any():
+        return float("nan")
+    hits = truth.float().cumsum(0)
+    precision = hits / torch.arange(1, len(truth) + 1)
+    return float(precision[truth].mean())

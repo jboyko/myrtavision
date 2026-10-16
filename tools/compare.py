@@ -20,7 +20,7 @@ import torch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
-from leafmachine_classifier.metrics import ORGANS, compute_metrics, optimize_thresholds  # noqa: E402
+from leafmachine_classifier.metrics import ORGANS, average_precision, compute_metrics, optimize_thresholds  # noqa: E402
 
 
 def load(path, truth):
@@ -33,16 +33,6 @@ def load(path, truth):
     targets = torch.tensor([truth[image_id] for image_id in ids], dtype=torch.float32)
     scores = torch.tensor([[float(row[f"{organ}_{column}"]) for organ in ORGANS] for row in rows])
     return targets, scores
-
-
-def average_precision(truth, scores):
-    order = scores.argsort(descending=True)
-    truth = truth[order].bool()
-    if not truth.any():
-        return float("nan")
-    hits = truth.float().cumsum(0)
-    precision = hits / torch.arange(1, len(truth) + 1)
-    return float(precision[truth].mean())
 
 
 def summarize(name, split, targets, scores, thresholds):
@@ -60,7 +50,7 @@ def summarize(name, split, targets, scores, thresholds):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v2.csv")
+    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v3.csv")
     parser.add_argument("--predictions", type=Path, default=PROJECT_ROOT / "results/predictions")
     parser.add_argument("--test", action="store_true", help="also score the held-out test split")
     parser.add_argument("--out", type=Path, help="defaults to results/compare_{val,test}.csv")

@@ -54,7 +54,7 @@ def link_tree(rows, root, class_of, cache):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v2.csv")
+    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v3.csv")
     parser.add_argument("--maxpx", type=int, default=1536, help="long side of the derived cache")
     parser.add_argument("--out", type=Path, default=PROJECT_ROOT / "datasets")
     parser.add_argument("--workers", type=int, default=8)

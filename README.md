@@ -17,8 +17,8 @@ and feature pyramid as a weakly supervised multiscale classifier:
 
 Raw inputs remain stable and shared:
 
-- `scores.csv`: sheet-level phenology annotations (2,025 scored images; 135 unavailable, see `splits/unavailable.csv`)
-- `splits/phenology_v2.csv`: specimen-grouped train/val/test split used by every method
+- `scores.csv`: sheet-level phenology annotations (3,000 images; 135 unavailable, see `splits/unavailable.csv`)
+- `splits/phenology_v3.csv`: specimen-grouped train/val/test split used by every method. It keeps every image of `phenology_v2.csv` in its v2 split and allocates only new specimens (`python -m leafmachine_classifier.prepare`).
 - `data/images`: native-resolution herbarium images, downloaded by `tools/download_images.py`
 
 LeafMachine2 is vendored at `third_party/LeafMachine2`, pinned to commit
@@ -58,22 +58,24 @@ Several methods are compared on the same split and scored by the same code:
 
 | method | what it is |
 |---|---|
-| `lm2_head` | LeafMachine2 feature pyramid + evidence head (`leafmachine_classifier`) |
 | `yolo_combo` | ultralytics YOLO-cls over the eight combinations; organ probability = summed softmax |
-| `yolo_binary` | three present/absent YOLO-cls models, one per organ |
-| `lm2_zeroshot` | LeafMachine2 detector confidences, no training (run by `eval.sbatch`) |
+| `dino` | DINOv3 ViT patch tokens + per-organ attention pooling (`dino_classifier`); backbone `frozen`, `lora`, or `last` N blocks trained |
+| `yolo_binary`, `lm2_head` | still supported by `train.sbatch` but dropped after the v2 comparison |
+
+Results from the 1,890-image v2 split are archived in `results/v2/`.
 
 Code lives in the home-directory clone. Rebuildable data (`data/`, `datasets/`, `runs/`, `weights/`) is symlinked to `/scratch` (see `slurm/config.sh`). Durable outputs go to `results/` in home: weights and curves in `results/train/<name>/`, per-image val/test probabilities in `results/predictions/<name>/`.
 
 ```bash
 git clone --recurse-submodules <repo> ~/myrtavision && cd ~/myrtavision
 scp third_party/LeafMachine2/checkpoints/best.pt greatlakes:myrtavision/third_party/LeafMachine2/checkpoints/   # from the Mac
-bash slurm/setup.sh                       # once: conda env, checkpoint check, scratch symlinks, YOLO weights
+hf auth login                             # once, after accepting the DINOv3 license on Hugging Face
+bash slurm/setup.sh                       # once: conda env, checkpoint check, scratch symlinks, YOLO and DINOv3 weights
 rsync -av --ignore-existing data/images/ greatlakes:myrtavision/data/images/   # from the Mac: images some hosts no longer serve
 source slurm/config.sh && activate_env && python tools/download_images.py      # login node; compute-node proxy blocks some hosts
 PREP=$(sbatch --parsable slurm/prep.sbatch)   # build cache + YOLO datasets; fails if any manifest image is missing
 sbatch --dependency=afterok:$PREP --array=1-$(($(wc -l < slurm/experiments.tsv) - 1))%5 slurm/train.sbatch
-sbatch slurm/eval.sbatch                  # zero-shot baseline + results/compare_val.csv
+sbatch slurm/eval.sbatch                  # ensembles + results/compare_val.csv
 ```
 
 | File | Purpose |
@@ -83,6 +85,7 @@ sbatch slurm/eval.sbatch                  # zero-shot baseline + results/compare
 | `splits/unavailable.csv` | Scored images no host serves any more; `prepare.py` leaves them out of the split |
 | `tools/build_datasets.py` | 1536 px cache and `datasets/combo`, `datasets/binary_<organ>` symlink trees |
 | `yolo_classifier/train.py` | Trains `yolo_combo` / `yolo_binary` runs and writes val/test probabilities |
+| `dino_classifier/train.py` | Trains `dino` runs on the 1536 px cache and writes val/test probabilities |
 | `tools/explain.py` | Grad-CAM bud/flower/fruit evidence maps for the final ensemble on val hits, misses, false alarms (`slurm/explain.sbatch`) |
 | `tools/ensemble.py` | Averages member runs' probabilities for ensembles in `slurm/ensembles.tsv` |
 | `tools/compare.py` | Per-organ F1 (thresholds chosen on val), average precision, exact match for every run |

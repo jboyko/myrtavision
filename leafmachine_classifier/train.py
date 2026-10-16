@@ -73,7 +73,7 @@ def checkpoint_payload(model, args, epoch, best_macro_f1):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v2.csv")
+    parser.add_argument("--manifest", type=Path, default=PROJECT_ROOT / "splits/phenology_v3.csv")
     parser.add_argument("--detector-weights", type=Path, default=DEFAULT_DETECTOR_WEIGHTS)
     parser.add_argument("--init-checkpoint", type=Path, help="initialize from a previously trained classifier head")
     parser.add_argument("--image-size", type=int, default=1280)

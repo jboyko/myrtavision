@@ -4,7 +4,7 @@ __pycache__/
 *.pyc
 *.pt
 # Frozen LeafMachine heads are ~1 MB; fine-tuned LM2 (~115 MB) and YOLO weights stay in results/ but out of git
-!/results/train/lm2_frozen_*/*.pt
+!/results/v2/train/lm2_frozen_*/*.pt
 
 # Rebuildable folders; symlinks into /scratch on Great Lakes, so no trailing slash
 /data

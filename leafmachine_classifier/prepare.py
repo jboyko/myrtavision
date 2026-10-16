@@ -1,4 +1,9 @@
-"""Create a specimen-grouped, combination-stratified split manifest."""
+"""Create a specimen-grouped, combination-stratified split manifest.
+
+With --base, images already in an earlier manifest keep their split, and so
+does any new image of a specimen that manifest already placed. Only specimens
+new to the scores are allocated, with the same stratification and fractions.
+"""
 from __future__ import annotations
 
 import argparse
@@ -44,7 +49,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--scores", type=Path, default=PROJECT_ROOT / "scores.csv")
     parser.add_argument("--images", type=Path, default=PROJECT_ROOT / "data/images")
-    parser.add_argument("--out", type=Path, default=PROJECT_ROOT / "splits/phenology_v2.csv")
+    parser.add_argument("--out", type=Path, default=PROJECT_ROOT / "splits/phenology_v3.csv")
+    parser.add_argument(
+        "--base",
+        type=Path,
+        default=PROJECT_ROOT / "splits/phenology_v2.csv",
+        help="earlier manifest whose specimen assignments are kept; pass none to split from scratch",
+    )
     parser.add_argument(
         "--exclude",
         type=Path,
@@ -95,17 +106,26 @@ def main():
     for row in rows:
         grouped[row["gbif_id"]].append(row)
 
+    assignments = {}
+    if args.base and str(args.base) != "none":
+        with args.base.open() as handle:
+            for row in csv.DictReader(handle):
+                assignments[row["gbif_id"]] = row["split"]
+        kept = sum(row["gbif_id"] in assignments for row in rows)
+        print(f"kept the {args.base.name} split for {kept} images; allocating the other {len(rows) - kept}")
+
     # Bucket each specimen by its most frequent image-level combination. A few
     # specimens have inconsistent image annotations, but every image from one
     # specimen still remains in exactly one split.
     buckets = defaultdict(list)
     for gbif_id, group_rows in grouped.items():
+        if gbif_id in assignments:
+            continue
         counts = Counter(tuple(int(row[organ]) for organ in ORGANS) for row in group_rows)
         signature = max(counts, key=lambda flags: (counts[flags], flags))
         buckets[signature].append(gbif_id)
 
     rng = random.Random(args.seed)
-    assignments = {}
     for signature in COMBINATIONS:
         assignments.update(
             allocate_bucket(buckets.get(signature, []), args.val, args.test, rng)

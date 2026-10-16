@@ -8,6 +8,7 @@ requests>=2,<3
 opencv-python>=5,<6
 matplotlib>=3.9,<4
 ultralytics>=8.4.131,<8.5
+transformers>=5.20,<6
 
 # Minimal runtime needed by LeafMachine2's bundled YOLOv5 detector.
 pandas>=3,<4

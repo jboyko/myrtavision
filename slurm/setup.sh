@@ -2,7 +2,8 @@
 # One-time setup on a Great Lakes login node, run from the repo root (~/myrtavision):
 #     bash slurm/setup.sh
 # Creates the conda env, fetches the LeafMachine2 submodule, puts the big folders
-# on /scratch (symlinked into the repo), and downloads pretrained YOLO weights.
+# on /scratch (symlinked into the repo), and downloads pretrained YOLO and DINOv3
+# weights (DINOv3 is gated: accept its license on Hugging Face and `hf auth login` first).
 # The LeafMachine2 checkpoint is not downloadable; scp it from the Mac first.
 set -euo pipefail
 source slurm/config.sh
@@ -49,7 +50,10 @@ for w in $PRETRAINED; do
     [ -f "$w" ] || python -c "from ultralytics import YOLO; YOLO('$w')"
 done
 cd ..
+for w in $DINO; do
+    [ -f "weights/$w/config.json" ] || hf download "facebook/$w-pretrain-lvd1689m" --local-dir "weights/$w"
+done
 
-python -c "import torch, ultralytics; print('torch', torch.__version__, '| CUDA build', torch.version.cuda, '| ultralytics', ultralytics.__version__)"
+python -c "import torch, transformers, ultralytics; print('torch', torch.__version__, '| CUDA build', torch.version.cuda, '| ultralytics', ultralytics.__version__, '| transformers', transformers.__version__)"
 python -c "import torch; assert torch.version.cuda == '12.6', f'torch CUDA build {torch.version.cuda}, need 12.6 for V100s'"
 echo "Setup done. Scratch: $SCRATCH_DIR"
