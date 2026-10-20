@@ -30,3 +30,6 @@ leafmachine_predictions*.csv
 
 # Grad-CAM figures (regenerate with slurm/explain.sbatch)
 /results/explain
+
+# Per-taxon error tables (regenerate with tools/by_taxon.py)
+/results/taxa
