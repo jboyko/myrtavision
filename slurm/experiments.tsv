@@ -11,3 +11,7 @@ dinov3_b_frozen	dino	dinov3-vitb16-pretrain-lvd1689m	1536	4	30	0	--mode frozen -
 dinov3_b_lora	dino	dinov3-vitb16-pretrain-lvd1689m	1536	2	20	0	--mode lora --accumulate 8
 dinov3_b_last4	dino	dinov3-vitb16-pretrain-lvd1689m	1536	2	20	0	--mode last --unfreeze 4 --backbone-lr 2e-5 --accumulate 8
 dinov3_l_lora	dino	dinov3-vitl16-pretrain-lvd1689m	1536	1	15	0	--mode lora --accumulate 16
+dinov2_l_lora_s1	dino	dinov2-with-registers-large	1344	1	15	1	--mode lora --accumulate 16
+dinov2_l_lora_s2	dino	dinov2-with-registers-large	1344	1	15	2	--mode lora --accumulate 16
+dinov3_b_lora_s1	dino	dinov3-vitb16-pretrain-lvd1689m	1536	2	20	1	--mode lora --accumulate 8
+dinov3_b_lora_s2	dino	dinov3-vitb16-pretrain-lvd1689m	1536	2	20	2	--mode lora --accumulate 8
