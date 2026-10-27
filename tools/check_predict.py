@@ -4,7 +4,7 @@
 
 predict.py reads native images and rebuilds the 1536 px thumbnail in memory;
 training read the cached JPEG of that thumbnail. Probabilities should agree to
-within JPEG re-encoding noise, and the 0/1 calls almost everywhere. Standard
+within JPEG re-encoding and fp16 noise (a few thousandths). Standard
 library only, so it runs on a login node without the conda env.
 """
 import csv
