@@ -21,12 +21,17 @@
 #    whether genera differ beyond species and sheet noise. Genus-by-organ
 #    effects are printed as odds ratios with sheet counts (rare genera are
 #    shrunk toward the mean).
-# 2. With a tree (Newick; tips Genus_species, or Genus for a genus-level
-#    tree): phylogenetic signal in error rates, as Pagel's lambda and
-#    Blomberg's K on the residuals of empirical-logit error rates regressed
-#    (inverse-variance weighted) on log training sheets, with their sampling
-#    variance passed as measurement error (phytools::phylosig se=). Signal in
-#    the raw rates is printed alongside for comparison.
+# 2. With a tree (Newick or NEXUS; tips Genus_species, or Genus for a genus-level
+#    tree): phylogenetic signal in sheet-level error rates (a sheet counts as
+#    an error if any organ is wrong, so its three calls are not treated as
+#    independent). Pagel's lambda and Blomberg's K are computed on the
+#    residuals of empirical-logit error rates regressed (inverse-variance
+#    weighted) on log training sheets, for taxa with at least MIN_SHEETS
+#    held-out sheets; the raw rates are printed alongside. Sampling variance
+#    is NOT passed as measurement error: with these small, uneven counts the
+#    K permutation test with se= flagged signal in 82% of simulations that
+#    had none, whereas without it K was close to nominal (2-8%) and lambda
+#    conservative.
 suppressPackageStartupMessages({
   library(lme4)
   library(ape)
@@ -81,32 +86,35 @@ if (length(args) < 2) {
   cat("\nNo tree given; skipping phylogenetic signal.\n")
   quit(save = "no")
 }
-tree <- read.tree(args[2])
+tree <- if (grepl("^#NEXUS", readLines(args[2], n = 1), ignore.case = TRUE)) read.nexus(args[2]) else read.tree(args[2])
 genus_level <- !any(grepl("_", tree$tip.label))
-unit <- if (genus_level) sheets$genus else gsub(" ", "_", sheets$species)
+MIN_SHEETS <- 5
+sheet_errors <- aggregate(error ~ image_id + genus + species, sheets, function(e) as.integer(any(e == 1)))
+unit <- if (genus_level) sheet_errors$genus else gsub(" ", "_", sheet_errors$species)
 unit[grepl("_sp\\.$", unit)] <- NA  # genus-only identifications have no species tip
-agg <- aggregate(error ~ unit, data = data.frame(unit = unit, error = sheets$error),
-                 FUN = function(e) c(errors = sum(e), calls = length(e)))
-agg <- data.frame(unit = agg$unit, errors = agg$error[, "errors"], calls = agg$error[, "calls"])
-agg <- agg[agg$unit %in% tree$tip.label, ]
-cat(sprintf("\n%s-level tree: %d of %d units with data are tips\n",
-            if (genus_level) "Genus" else "Species", nrow(agg), length(unique(na.omit(unit)))))
-if (nrow(agg) < 10) {
-  cat("Fewer than 10 matched tips; too few for a signal test.\n")
+agg <- aggregate(error ~ unit, data = data.frame(unit = unit, error = sheet_errors$error),
+                 FUN = function(e) c(errors = sum(e), sheets = length(e)))
+agg <- data.frame(unit = agg$unit, errors = agg$error[, "errors"], sheets = agg$error[, "sheets"])
+cat(sprintf("\n%s-level tree: %d of %d units with data are tips; %d have >= %d held-out sheets\n",
+            if (genus_level) "Genus" else "Species", sum(agg$unit %in% tree$tip.label),
+            nrow(agg), sum(agg$unit %in% tree$tip.label & agg$sheets >= MIN_SHEETS), MIN_SHEETS))
+agg <- agg[agg$unit %in% tree$tip.label & agg$sheets >= MIN_SHEETS, ]
+if (nrow(agg) < 8) {
+  cat("Fewer than 8 usable tips; too few for a signal test.\n")
   quit(save = "no")
 }
 pruned <- keep.tip(tree, agg$unit)
-logit <- setNames(log((agg$errors + 0.5) / (agg$calls - agg$errors + 0.5)), agg$unit)
-se <- setNames(sqrt(1 / (agg$errors + 0.5) + 1 / (agg$calls - agg$errors + 0.5)), agg$unit)
+logit <- setNames(log((agg$errors + 0.5) / (agg$sheets - agg$errors + 0.5)), agg$unit)
+variance <- 1 / (agg$errors + 0.5) + 1 / (agg$sheets - agg$errors + 0.5)
 train_units <- if (genus_level) train$genus else gsub(" ", "_", train$species)
 agg$log_train <- log_train(agg$unit, train_units)
-size_fit <- lm(logit ~ log_train, data = cbind(agg, logit = logit), weights = 1 / se^2)
-cat(sprintf("Weighted regression on log training sheets: slope %.3f (p = %.4f)\n",
+size_fit <- lm(logit ~ log_train, data = cbind(agg, logit = logit), weights = 1 / variance)
+cat(sprintf("Weighted regression of sheet error logit on log training sheets: slope %.3f (p = %.4f)\n",
             coef(size_fit)[2], summary(size_fit)$coefficients[2, 4]))
 residual <- setNames(residuals(size_fit), agg$unit)
 for (target in list(list("raw error rates", logit), list("residuals after training size", residual))) {
-  lambda <- phylosig(pruned, target[[2]], method = "lambda", se = se, test = TRUE)
-  K <- phylosig(pruned, target[[2]], method = "K", se = se, test = TRUE, nsim = 999)
+  lambda <- phylosig(pruned, target[[2]], method = "lambda", test = TRUE)
+  K <- phylosig(pruned, target[[2]], method = "K", test = TRUE, nsim = 999)
   cat(sprintf("%-30s Pagel's lambda = %.3f (p = %.4f)   Blomberg's K = %.3f (p = %.4f)\n",
               target[[1]], lambda$lambda, lambda$P, K$K, K$P))
 }

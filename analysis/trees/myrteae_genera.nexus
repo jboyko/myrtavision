@@ -1,0 +1,75 @@
+#NEXUS
+[R-package APE, Tue Oct 20 09:45:59 2026]
+
+BEGIN TAXA;
+	DIMENSIONS NTAX = 31;
+	TAXLABELS
+		Acca
+		Myrrhinium
+		Psidium
+		Mosiera
+		Amomyrtella
+		Campomanesia
+		Curitiba
+		Feijoa
+		Pimenta
+		Amomyrtus
+		Legrandia
+		Lenwebbia
+		Lophomyrtus
+		Myrteola
+		Ugni
+		Eugenia
+		Myrcianthes
+		Algrizea
+		Myrciaria
+		Siphoneugena
+		Plinia
+		Myrcia
+		Nothomyrcia
+		Blepharocalyx
+		Luma
+		Myrceugenia
+		Temu
+		Accara
+		Calycolpus
+		Chamguava
+		Myrtus
+	;
+END;
+BEGIN TREES;
+	TRANSLATE
+		1	Acca,
+		2	Myrrhinium,
+		3	Psidium,
+		4	Mosiera,
+		5	Amomyrtella,
+		6	Campomanesia,
+		7	Curitiba,
+		8	Feijoa,
+		9	Pimenta,
+		10	Amomyrtus,
+		11	Legrandia,
+		12	Lenwebbia,
+		13	Lophomyrtus,
+		14	Myrteola,
+		15	Ugni,
+		16	Eugenia,
+		17	Myrcianthes,
+		18	Algrizea,
+		19	Myrciaria,
+		20	Siphoneugena,
+		21	Plinia,
+		22	Myrcia,
+		23	Nothomyrcia,
+		24	Blepharocalyx,
+		25	Luma,
+		26	Myrceugenia,
+		27	Temu,
+		28	Accara,
+		29	Calycolpus,
+		30	Chamguava,
+		31	Myrtus
+	;
+	TREE * UNTITLED = [&R] ((((((((((1:13.38390062,2:13.38390062):7.97963065,3:21.36353127):3.301517144,4:24.66504842):4.420041833,5:29.08509025):1.794298273,(((6:25.56091677,7:25.56091677):1.293259283,8:26.85417605):1.775133604,9:28.62930965):2.250078867):2.139959935,(10:26.04339694,11:26.04339694):6.975951515):1.879938542,((12:13.53513604,13:13.53513604):11.26297007,(14:21.91513645,15:21.91513645):2.882969662):10.10118089):1.301163406,(16:33.20875592,17:33.20875592):2.991694489):1.19121292,((((18:27.42407378,((19:23.27133264,20:23.27133264):0.3981608498,21:23.66949348):3.754580295):2.61383003,22:30.03790381):1.825031974,23:31.86293578):3.478751016,(24:32.97908737,(25:29.89446943,(26:26.37173825,27:26.37173824):3.522731197):3.084617931):2.36259943):2.049976524):1.98764022,(28:26.32879667,(29:23.44625259,(30:18.6505821,31:18.6505821):4.79567049):2.882544076):13.05050688):0;
+END;
