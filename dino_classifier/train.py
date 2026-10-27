@@ -43,6 +43,13 @@ from leafmachine_classifier.metrics import average_precision  # noqa: E402
 Image.MAX_IMAGE_PIXELS = None
 
 
+def resize_to_patches(image: Image.Image, long_side: float, patch: int) -> torch.Tensor:
+    """Resize so the long side is about long_side, both sides whole patches; float in [0, 1]."""
+    scale = long_side / max(image.size)
+    width, height = (max(patch, round(side * scale / patch) * patch) for side in image.size)
+    return TF.to_dtype(TF.pil_to_tensor(image.resize((width, height), Image.Resampling.BILINEAR)), torch.float32, scale=True)
+
+
 class Sheets(Dataset):
     def __init__(self, rows, image_size, patch, cache, augment):
         self.rows, self.image_size, self.patch, self.cache, self.augment = rows, image_size, patch, cache, augment
@@ -58,12 +65,9 @@ class Sheets(Dataset):
         with Image.open(path) as source:
             source.draft("RGB", (self.image_size, self.image_size))
             image = ImageOps.exif_transpose(source).convert("RGB")
-        scale = self.image_size / max(image.size)
-        if self.augment:
-            scale *= random.uniform(0.85, 1.0)
-        width, height = (max(self.patch, round(side * scale / self.patch) * self.patch) for side in image.size)
-        image = TF.to_dtype(TF.pil_to_tensor(image.resize((width, height), Image.Resampling.BILINEAR)), torch.float32, scale=True)
-        valid = torch.ones(1, height, width)
+        long_side = self.image_size * (random.uniform(0.85, 1.0) if self.augment else 1.0)
+        image = resize_to_patches(image, long_side, self.patch)
+        valid = torch.ones(1, *image.shape[1:])
         if self.augment:
             if random.random() < 0.5:
                 image, valid = image.flip(-1), valid.flip(-1)

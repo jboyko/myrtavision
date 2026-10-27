@@ -86,11 +86,28 @@ sbatch slurm/eval.sbatch                  # ensembles + results/compare_val.csv
 | `tools/build_datasets.py` | 1536 px cache and `datasets/combo`, `datasets/binary_<organ>` symlink trees |
 | `yolo_classifier/train.py` | Trains `yolo_combo` / `yolo_binary` runs and writes val/test probabilities |
 | `dino_classifier/train.py` | Trains `dino` runs (DINOv2 or v3) on the 1536 px cache and writes val/test probabilities |
+| `dino_classifier/predict.py` | Scores new sheets with the final ensemble (`slurm/predict.sbatch`) |
 | `tools/explain.py` | Grad-CAM bud/flower/fruit evidence maps for the final ensemble on val hits, misses, false alarms (`slurm/explain.sbatch`) |
 | `tools/ensemble.py` | Averages member runs' probabilities for ensembles in `slurm/ensembles.tsv` |
 | `tools/compare.py` | Per-organ F1 (thresholds chosen on val), average precision, exact match for every run |
 
 Choose methods on `val` (`compare_val.csv`); run `sbatch slurm/eval.sbatch --test` only once, for the final choice. Frozen LeafMachine head checkpoints (~1 MB) are committed; fine-tuned LM2 and YOLO weights stay in `results/` but out of git.
+
+## Scoring new sheets
+
+The final model is `ens_dinov2_l_lora_x3`: three DINOv2-L LoRA runs (seeds
+0-2) averaged, chosen on val. On the 426-sheet test split it scores macro F1
+0.893 and macro AP 0.971 (YOLO y26l ensemble: 0.817 / 0.910). Its members and
+val-chosen thresholds are in `dino_classifier/final_model.json`; the member
+checkpoints live in `results/train/` on Great Lakes.
+
+```bash
+sbatch slurm/predict.sbatch results/new_sheets.csv data/new_sheets
+```
+
+The CSV has, per sheet, `<organ>_prob` (ensemble mean) and a 0/1 call per
+organ at the val thresholds. The fruit threshold (0.94) transferred less well
+to test than the ranking did, so keep the probabilities if fruit recall matters.
 
 ## Legacy approach
 

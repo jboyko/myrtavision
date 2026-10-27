@@ -1,0 +1,24 @@
+{
+  "name": "ens_dinov2_l_lora_x3",
+  "description": "Mean of three DINOv2-L (with registers) LoRA runs, seeds 0-2, at 1344 px; chosen on val of splits/phenology_v3.csv",
+  "members": [
+    "results/train/dinov2_l_lora/best.pt",
+    "results/train/dinov2_l_lora_s1/best.pt",
+    "results/train/dinov2_l_lora_s2/best.pt"
+  ],
+  "thresholds": {
+    "bud": 0.515568,
+    "flower": 0.467464,
+    "fruit": 0.942937
+  },
+  "thresholds_note": "F1-optimal on val; the fruit threshold is high and transferred less well to test (fruit AP 0.983, F1 0.885)",
+  "test": {
+    "sheets": 426,
+    "macro_f1": 0.893,
+    "macro_ap": 0.971,
+    "exact": 0.791,
+    "bud_f1": 0.88,
+    "flower_f1": 0.915,
+    "fruit_f1": 0.885
+  }
+}
