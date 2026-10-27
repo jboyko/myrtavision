@@ -8,6 +8,12 @@ tools/build_datasets.py caches, then the model's own long side. Every member
 listed in dino_classifier/final_model.json scores every sheet; probabilities
 are averaged and called present at the val-chosen thresholds stored there.
 
+Sheets are scored one at a time. Batching pads sheets to a common size, and
+although padding is masked out of the pooling head, every backbone token
+attends to it, which shifted probabilities by up to 0.5. The final members
+were trained and evaluated at batch size 1, so this also reproduces their
+val and test numbers.
+
 The output has one row per sheet: image (file stem), path, <organ>_prob, and
 <organ> (0/1 call). Sheets that cannot be read are listed in
 <out>.failures.csv and left out.
@@ -79,7 +85,6 @@ def main():
     parser.add_argument("inputs", nargs="+", help="image files or folders")
     parser.add_argument("--out", type=Path, required=True, help="output CSV")
     parser.add_argument("--config", type=Path, default=PROJECT_ROOT / "dino_classifier/final_model.json")
-    parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--amp", choices=("fp16", "bf16", "none"), default="fp16")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
@@ -101,7 +106,7 @@ def main():
     paths = find_images(args.inputs)
     if not paths:
         raise SystemExit("no images found")
-    loader = DataLoader(NewSheets(paths, settings["image_size"], model.patch), batch_size=args.batch_size,
+    loader = DataLoader(NewSheets(paths, settings["image_size"], model.patch), batch_size=1,
                         num_workers=args.workers, collate_fn=collate_readable)
     print(f"{config['name']}: {len(config['members'])} members, {len(paths)} images", flush=True)
 
