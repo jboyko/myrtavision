@@ -3,14 +3,16 @@
     python -m dino_classifier.predict data/new_sheets --out results/new_sheets.csv
 
 Inputs are image files or folders, searched recursively for .jpg, .jpeg, .png
-and .tif. Each sheet is reduced as in training: the 1536 px LANCZOS thumbnail
-tools/build_datasets.py caches, then the model's own long side. Every member
+and .tif. Each sheet is reduced exactly as in training: the 1536 px LANCZOS
+thumbnail tools/build_datasets.py caches, including its JPEG encoding at
+quality 95 (skipping that step moved some probabilities by 0.3), then the
+model's own long side. Every member
 listed in dino_classifier/final_model.json scores every sheet; probabilities
 are averaged and called present at the val-chosen thresholds stored there.
 
 Sheets are scored one at a time. Batching pads sheets to a common size, and
 although padding is masked out of the pooling head, every backbone token
-attends to it, which shifted probabilities by up to 0.5. The final members
+attends to it, so a sheet's probabilities depend on its batch-mates. The final members
 were trained and evaluated at batch size 1, so this also reproduces their
 val and test numbers.
 
@@ -22,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import json
 import sys
 from pathlib import Path
@@ -55,6 +58,11 @@ class NewSheets(Dataset):
                 source.draft("RGB", (CACHE_SIDE, CACHE_SIDE))
                 image = ImageOps.exif_transpose(source).convert("RGB")
             image.thumbnail((CACHE_SIDE, CACHE_SIDE), Image.Resampling.LANCZOS)
+            encoded = io.BytesIO()
+            image.save(encoded, "JPEG", quality=95)  # as tools/build_datasets.derive saves the cache
+            with Image.open(encoded) as cached:
+                cached.draft("RGB", (self.image_size, self.image_size))  # as train.Sheets reads it
+                image = cached.convert("RGB")
             image = TF.normalize(resize_to_patches(image, self.image_size, self.patch), MEAN, STD)
         except Exception as error:  # unreadable or truncated files are reported, not fatal
             return None, str(path), f"{type(error).__name__}: {error}"
