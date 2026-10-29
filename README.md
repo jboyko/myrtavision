@@ -105,6 +105,11 @@ checkpoints live in `results/train/` on Great Lakes.
 sbatch slurm/predict.sbatch results/new_sheets.csv data/new_sheets
 ```
 
+The unscored specimens in the GBIF export are listed one image each in
+`splits/pool.csv` (`tools/build_pool.py`, run on the Mac where
+`training_data/` lives) and downloaded on a login node with
+`python tools/download_images.py --manifest splits/pool.csv --images data/pool`.
+
 The CSV has, per sheet, `<organ>_prob` (ensemble mean) and a 0/1 call per
 organ at the val thresholds. The fruit threshold (0.94) transferred less well
 to test than the ranking did, so keep the probabilities if fruit recall matters.
