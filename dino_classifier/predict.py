@@ -96,6 +96,8 @@ def main():
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--amp", choices=("fp16", "bf16", "none"), default="fp16")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--shard", help="K/N: score only every Nth image starting at the Kth (0-based), "
+                                        "so N jobs split one folder")
     args = parser.parse_args()
 
     config = json.loads(args.config.read_text())
@@ -112,6 +114,9 @@ def main():
                           unfreeze=settings["unfreeze"]).to(device).eval()
 
     paths = find_images(args.inputs)
+    if args.shard:
+        shard, shards = map(int, args.shard.split("/"))
+        paths = paths[shard::shards]
     if not paths:
         raise SystemExit("no images found")
     loader = DataLoader(NewSheets(paths, settings["image_size"], model.patch), batch_size=1,
