@@ -58,6 +58,8 @@ def main():
     parser.add_argument("--maxpx", type=int, default=1536, help="long side of the derived cache")
     parser.add_argument("--out", type=Path, default=PROJECT_ROOT / "datasets")
     parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--cache-only", action="store_true",
+                        help="build data/derived/<maxpx> and stop; the YOLO datasets keep their links")
     args = parser.parse_args()
 
     rows = list(csv.DictReader(args.manifest.open()))
@@ -78,6 +80,8 @@ def main():
     with ProcessPoolExecutor(args.workers) as pool:
         list(pool.map(derive, tasks, chunksize=8))
     print(f"derived cache: {cache}")
+    if args.cache_only:
+        return
 
     link_tree(rows, args.out / "combo", combination, cache)
     for organ in ORGANS:

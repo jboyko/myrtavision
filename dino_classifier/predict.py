@@ -3,12 +3,12 @@
     python -m dino_classifier.predict data/new_sheets --out results/new_sheets.csv
 
 Inputs are image files or folders, searched recursively for .jpg, .jpeg, .png
-and .tif. Each sheet is reduced exactly as in training: the 1536 px LANCZOS
-thumbnail tools/build_datasets.py caches, including its JPEG encoding at
-quality 95 (skipping that step moved some probabilities by 0.3), then the
-model's own long side. Every member
-listed in dino_classifier/final_model.json scores every sheet; probabilities
-are averaged and called present at the val-chosen thresholds stored there.
+and .tif. Each sheet is reduced exactly as in training: the LANCZOS thumbnail
+tools/build_datasets.py caches (1536 px, or the members' --cache size),
+including its JPEG encoding at quality 95 (skipping that step moved some
+probabilities by 0.3), then the model's own long side. Every member listed in
+dino_classifier/final_model.json scores every sheet; probabilities are
+averaged and called present at the val-chosen thresholds stored there.
 
 Sheets are scored one at a time. Batching pads sheets to a common size, and
 although padding is masked out of the pooling head, every backbone token
@@ -40,13 +40,12 @@ from dino_classifier.model import MEAN, ORGANS, STD, DinoPhenology, patch_mask_f
 from dino_classifier.train import autocast, collate, resize_to_patches  # noqa: E402
 
 Image.MAX_IMAGE_PIXELS = None
-CACHE_SIDE = 1536  # tools/build_datasets.py --maxpx, which every training image passed through
 SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 
 
 class NewSheets(Dataset):
-    def __init__(self, paths, image_size, patch):
-        self.paths, self.image_size, self.patch = paths, image_size, patch
+    def __init__(self, paths, image_size, patch, cache_side):
+        self.paths, self.image_size, self.patch, self.cache_side = paths, image_size, patch, cache_side
 
     def __len__(self):
         return len(self.paths)
@@ -55,9 +54,9 @@ class NewSheets(Dataset):
         path = self.paths[index]
         try:
             with Image.open(path) as source:
-                source.draft("RGB", (CACHE_SIDE, CACHE_SIDE))
+                source.draft("RGB", (self.cache_side, self.cache_side))
                 image = ImageOps.exif_transpose(source).convert("RGB")
-            image.thumbnail((CACHE_SIDE, CACHE_SIDE), Image.Resampling.LANCZOS)
+            image.thumbnail((self.cache_side, self.cache_side), Image.Resampling.LANCZOS)
             encoded = io.BytesIO()
             image.save(encoded, "JPEG", quality=95)  # as tools/build_datasets.derive saves the cache
             with Image.open(encoded) as cached:
@@ -102,13 +101,16 @@ def main():
 
     config = json.loads(args.config.read_text())
     checkpoints = [torch.load(PROJECT_ROOT / member, map_location="cpu") for member in config["members"]]
-    shared = ("backbone", "mode", "lora_rank", "unfreeze", "image_size")
+    shared = ("backbone", "mode", "lora_rank", "unfreeze", "image_size", "cache")
+    for checkpoint in checkpoints:
+        checkpoint["args"].setdefault("cache", "data/derived/1536")  # the only cache before --cache varied
     settings = {key: checkpoints[0]["args"][key] for key in shared}
     for member, checkpoint in zip(config["members"], checkpoints):
         if any(checkpoint["args"][key] != settings[key] for key in shared):
             raise SystemExit(f"{member} differs from the first member in {shared}; members must share a backbone")
     backbone = Path(settings["backbone"])
     backbone = backbone if backbone.is_absolute() else PROJECT_ROOT / backbone
+    cache_side = int(Path(settings["cache"]).name)  # data/derived/<maxpx>, which every training image passed through
     device = torch.device(args.device)
     model = DinoPhenology(str(backbone), settings["mode"], lora_rank=settings["lora_rank"],
                           unfreeze=settings["unfreeze"]).to(device).eval()
@@ -119,7 +121,7 @@ def main():
         paths = paths[shard::shards]
     if not paths:
         raise SystemExit("no images found")
-    loader = DataLoader(NewSheets(paths, settings["image_size"], model.patch), batch_size=1,
+    loader = DataLoader(NewSheets(paths, settings["image_size"], model.patch, cache_side), batch_size=1,
                         num_workers=args.workers, collate_fn=collate_readable)
     print(f"{config['name']}: {len(config['members'])} members, {len(paths)} images", flush=True)
 

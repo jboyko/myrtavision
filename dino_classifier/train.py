@@ -176,6 +176,8 @@ def main():
     for epoch in range(1, args.epochs + 1):
         model.train()
         started, losses = time.time(), []
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
         optimizer.zero_grad(set_to_none=True)
         for index, (images, valid, targets, _) in enumerate(loader["train"], 1):
             with autocast(device, args.amp):
@@ -196,9 +198,10 @@ def main():
         _, val_targets, val_probabilities = predict(model, loader["val"], device, args.amp)
         val_ap = macro_ap(val_targets, val_probabilities)
         history.append({"epoch": epoch, "train_loss": float(np.mean(losses)), "val_macro_ap": val_ap,
-                        "minutes": (time.time() - started) / 60})
+                        "minutes": (time.time() - started) / 60,
+                        "max_gpu_gb": torch.cuda.max_memory_allocated(device) / 1e9 if device.type == "cuda" else 0.0})
         print(f"epoch {epoch}: loss {history[-1]['train_loss']:.4f}  val macro AP {val_ap:.4f}  "
-              f"{history[-1]['minutes']:.1f} min", flush=True)
+              f"{history[-1]['minutes']:.1f} min  {history[-1]['max_gpu_gb']:.1f} GB", flush=True)
         if val_ap > best:
             best, stale = val_ap, 0
             torch.save({"args": {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()}, "epoch": epoch,

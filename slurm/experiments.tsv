@@ -15,3 +15,14 @@ dinov2_l_lora_s1	dino	dinov2-with-registers-large	1344	1	15	1	--mode lora --accu
 dinov2_l_lora_s2	dino	dinov2-with-registers-large	1344	1	15	2	--mode lora --accumulate 16
 dinov3_b_lora_s1	dino	dinov3-vitb16-pretrain-lvd1689m	1536	2	20	1	--mode lora --accumulate 8
 dinov3_b_lora_s2	dino	dinov3-vitb16-pretrain-lvd1689m	1536	2	20	2	--mode lora --accumulate 8
+dinov3_l_lora_3072	dino	dinov3-vitl16-pretrain-lvd1689m	3072	1	15	0	--mode lora --accumulate 16 --cache data/derived/3072
+dinov3_l_lora_3072_s1	dino	dinov3-vitl16-pretrain-lvd1689m	3072	1	15	1	--mode lora --accumulate 16 --cache data/derived/3072
+dinov3_l_lora_3072_s2	dino	dinov3-vitl16-pretrain-lvd1689m	3072	1	15	2	--mode lora --accumulate 16 --cache data/derived/3072
+dinov3_l_lora_2560	dino	dinov3-vitl16-pretrain-lvd1689m	2560	1	15	0	--mode lora --accumulate 16 --cache data/derived/3072
+dinov3_l_lora_2560_s1	dino	dinov3-vitl16-pretrain-lvd1689m	2560	1	15	1	--mode lora --accumulate 16 --cache data/derived/3072
+dinov3_l_lora_2560_s2	dino	dinov3-vitl16-pretrain-lvd1689m	2560	1	15	2	--mode lora --accumulate 16 --cache data/derived/3072
+dinov3_l_lora_2048	dino	dinov3-vitl16-pretrain-lvd1689m	2048	1	15	0	--mode lora --accumulate 16 --cache data/derived/3072
+dinov3_l_lora_2048_s1	dino	dinov3-vitl16-pretrain-lvd1689m	2048	1	15	1	--mode lora --accumulate 16 --cache data/derived/3072
+dinov3_l_lora_2048_s2	dino	dinov3-vitl16-pretrain-lvd1689m	2048	1	15	2	--mode lora --accumulate 16 --cache data/derived/3072
+dinov3_l_lora_s1	dino	dinov3-vitl16-pretrain-lvd1689m	1536	1	15	1	--mode lora --accumulate 16
+dinov3_l_lora_s2	dino	dinov3-vitl16-pretrain-lvd1689m	1536	1	15	2	--mode lora --accumulate 16

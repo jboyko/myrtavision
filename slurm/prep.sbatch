@@ -4,6 +4,7 @@
 # (the compute-node proxy blocks some hosts). Fails if any manifest image is
 # missing, so a chained training array never starts on a partial set.
 #     sbatch slurm/prep.sbatch
+#     sbatch slurm/prep.sbatch --maxpx 3072 --cache-only   # larger cache for high-res DINO
 #SBATCH --job-name=myrta_prep
 #SBATCH --account=jboyko0
 #SBATCH --partition=standard
@@ -16,4 +17,4 @@ cd "$SLURM_SUBMIT_DIR"
 source slurm/config.sh
 activate_env
 
-python tools/build_datasets.py --workers "$SLURM_CPUS_PER_TASK"
+python tools/build_datasets.py --workers "$SLURM_CPUS_PER_TASK" "$@"

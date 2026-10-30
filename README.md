@@ -83,9 +83,10 @@ sbatch slurm/eval.sbatch                  # ensembles + results/compare_val.csv
 | `slurm/experiments.tsv` | One run per line (name, method, model, imgsz, batch, epochs, seed, extra args); add lines to try more |
 | `tools/download_images.py` | Downloads manifest images (login node); failures go to `data/download_failures.csv` |
 | `splits/unavailable.csv` | Scored images no host serves any more; `prepare.py` leaves them out of the split |
-| `tools/build_datasets.py` | 1536 px cache and `datasets/combo`, `datasets/binary_<organ>` symlink trees |
+| `tools/build_datasets.py` | 1536 px cache and `datasets/combo`, `datasets/binary_<organ>` symlink trees; `--maxpx 3072 --cache-only` adds the high-res DINO cache |
 | `yolo_classifier/train.py` | Trains `yolo_combo` / `yolo_binary` runs and writes val/test probabilities |
-| `dino_classifier/train.py` | Trains `dino` runs (DINOv2 or v3) on the 1536 px cache and writes val/test probabilities |
+| `dino_classifier/train.py` | Trains `dino` runs (DINOv2 or v3) on the 1536 px cache (or `--cache`) and writes val/test probabilities |
+| `slurm/submit_resolution.sh` | DINOv3-L at 1536–3072 px, three seeds each: cache, training and scoring chained in one submit |
 | `dino_classifier/predict.py` | Scores new sheets with the final ensemble (`slurm/predict.sbatch`) |
 | `tools/explain.py` | Grad-CAM bud/flower/fruit evidence maps for the final ensemble on val hits, misses, false alarms (`slurm/explain.sbatch`) |
 | `tools/ensemble.py` | Averages member runs' probabilities for ensembles in `slurm/ensembles.tsv` |
