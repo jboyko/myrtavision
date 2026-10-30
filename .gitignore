@@ -33,3 +33,5 @@ leafmachine_predictions*.csv
 
 # Per-taxon error tables (regenerate with tools/by_taxon.py)
 /results/taxa
+/results/pool/
+/results/spot_check.html
